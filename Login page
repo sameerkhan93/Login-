@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:grocery_app/StartUpPage.dart';
+import 'package:grocery_app/sliderpage.dart';
 import 'package:toast/toast.dart';
 import 'Tools/Authentication.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginRegisterPage extends StatefulWidget {
   final AuthImplementation auth;
@@ -24,9 +25,13 @@ enum Formtype {
 class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+
   Formtype _formtype = Formtype.login;
   String _email = "";
   String _password = "";
+
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +55,10 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     );
   }
 
+  //Controllers for input fields
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
   // ignore: missing_return
   List<Widget> createInput() {
     if (_formtype == Formtype.login) {
@@ -71,6 +80,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           onSaved: (value) {
             return _email == value;
           },
+          controller: emailController,
         ),
         SizedBox(
           height: 10,
@@ -88,6 +98,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           onSaved: (value) {
             return _password == value;
           },
+          controller: passwordController,
         ),
         SizedBox(
           height: 20,
@@ -116,6 +127,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           onSaved: (value) {
             return _email == value;
           },
+          controller: emailController,
         ),
         SizedBox(
           height: 10,
@@ -133,6 +145,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           onSaved: (value) {
             return _password == value;
           },
+          controller: passwordController,
         ),
         SizedBox(
           height: 20,
@@ -153,7 +166,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
               borderRadius: new BorderRadius.circular(30.0),
             ),
             onPressed: signIn,
-            color: Colors.orangeAccent,
+            color: Colors.pinkAccent,
             child: Text(
               'Login',
               style: TextStyle(
@@ -182,7 +195,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
               borderRadius: new BorderRadius.circular(30.0),
             ),
             onPressed: signUp,
-            color: Colors.orangeAccent,
+            color: Colors.pinkAccent,
             child: Text(
               'Register',
               style: TextStyle(
@@ -228,35 +241,51 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     if (formState.validate()) {
       formState.save();
       try {
-        var userId = await widget.auth.SignIn(_email, _password);
-        if (userId != null)
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StartUpPage(
-                auth: Auth(),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Center(
+              child: Opacity(
+                opacity: 1.0,
+                child: CircularProgressIndicator(
+                  valueColor:
+                      new AlwaysStoppedAnimation<Color>(Colors.pinkAccent),
+                ),
               ),
-            ),
-          );
-        else {
-          Scaffold.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Have a snack'),
-            ),
-          );
-        }
+            );
+          },
+        );
+
+        new Future.delayed(
+          new Duration(seconds: 3),
+          () async {
+       //used firebase sdk functions directly from firebase instance
+            var userId = await _firebaseAuth.signInWithEmailAndPassword
+              (email: emailController.text, password: passwordController.text);
+            print(userId);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SliderPage(),
+              ),
+            );
+          },
+        );
       } catch (e) {
         print("Error" + e.toString());
       }
     }
   }
 
-  void signUp() async {
+  Future<void> signUp() async {
     final formState = _formKey.currentState;
     if (formState.validate()) {
       formState.save();
       try {
-        String userId = await widget.auth.SigUp(_email, _password);
+        var userId =  await _firebaseAuth.createUserWithEmailAndPassword
+          (email: emailController.text, password: passwordController.text);
+        print(userId);
         if (userId == userId) {
           showDialog(
             context: context,
@@ -267,7 +296,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                   opacity: 1.0,
                   child: CircularProgressIndicator(
                     valueColor:
-                        new AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+                        new AlwaysStoppedAnimation<Color>(Colors.pinkAccent),
                   ),
                 ),
               );
@@ -276,11 +305,13 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           Toast.show('Success Registration', context,
               duration: Toast.LENGTH_LONG);
           Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => LoginRegisterPage(
-                        auth: Auth(),
-                      )));
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoginRegisterPage(
+                auth: Auth(),
+              ),
+            ),
+          );
         }
       } catch (e) {
         print("Error" + e.toString());
@@ -301,28 +332,30 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
   Future<bool> _onBackPressed() {
     return showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext) {
-          return AlertDialog(
-            title: Text('Confirm Exit'),
-            content: Text('Are you sure you want to exit'),
-            actions: <Widget>[
-              FlatButton(
-                child: Text('Yes'),
-                onPressed: () {
-                  SystemNavigator.pop();
-                },
-              ),
-              FlatButton(
-                child: Text('No'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        });
+      context: context,
+      barrierDismissible: false,
+      // ignore: non_constant_identifier_names
+      builder: (BuildContext) {
+        return AlertDialog(
+          title: Text('Confirm Exit'),
+          content: Text('Are you sure you want to exit'),
+          actions: <Widget>[
+            FlatButton(
+              child: Text('Yes'),
+              onPressed: () {
+                SystemNavigator.pop();
+              },
+            ),
+            FlatButton(
+              child: Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
     return Future.value(true);
   }
 }
