@@ -1,0 +1,75 @@
+import 'dart:ffi';
+import 'package:flutter/material.dart';
+import 'package:grocery_app/Tools/Authentication.dart';
+import '../StartUpPage.dart';
+import '../loginRegisterPage.dart';
+
+
+class Mapping extends StatefulWidget {
+  final AuthImplementation auth;
+
+  Mapping({this.auth});
+
+  State<StatefulWidget> createState() {
+    return _MappingState();
+  }
+}
+
+enum AuthStatus {
+  notSignedIn,
+  signedIn,
+}
+
+class _MappingState extends State<Mapping> {
+  AuthStatus authStatus = AuthStatus.notSignedIn;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.auth.getCurrentUser().then(
+      (fireBaseUserId) {
+        setState(
+          () {
+            authStatus = fireBaseUserId == null
+                ? AuthStatus.notSignedIn
+                : AuthStatus.signedIn;
+          },
+        );
+      },
+    );
+  }
+
+  // ignore: missing_return
+  Void _signedIn() {
+    setState(
+      () {
+        authStatus = AuthStatus.signedIn;
+      },
+    );
+  }
+
+  // ignore: missing_return
+  Void _signedOut() {
+    setState(() {
+      authStatus = AuthStatus.notSignedIn;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    switch (authStatus) {
+      case AuthStatus.notSignedIn:
+        return new LoginRegisterPage(
+          auth: widget.auth,
+          onSignedIn: _signedIn,
+        );
+
+      case AuthStatus.signedIn:
+        return new StartUpPage(
+          auth: widget.auth,
+          onSignedOut: _signedOut,
+        );
+    }
+    return Container();
+  }
+}
