@@ -1,0 +1,56 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
+abstract class AuthImplementation {
+  // ignore: non_constant_identifier_names
+  Future<String> SignIn(String email, String password);
+
+  // ignore: non_constant_identifier_names
+  Future<String> SignUp2(String email, String password);
+
+  Future<String> getCurrentUser();
+
+  // ignore: non_constant_identifier_names
+  Future<void> SignOut();
+}
+
+class Auth implements AuthImplementation {
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  // ignore: non_constant_identifier_names, missing_return
+  Future<String> SignIn(String email, String password) async {
+    UserCredential user = (await _firebaseAuth.signInWithEmailAndPassword(
+        email: email, password: password));
+  }
+
+  // ignore: non_constant_identifier_names, missing_return
+  Future<String> SignUp(String email, String password) async {
+    UserCredential user = (await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email, password: password));
+  }
+
+  Future<String> getCurrentUser() async {
+    User user = _firebaseAuth.currentUser;
+    return user.uid;
+  }
+
+  // ignore: non_constant_identifier_names
+  Future<void> SignOut() async {
+    _firebaseAuth.signOut();
+  }
+
+  // @override
+  // ignore: non_constant_identifier_names
+  Future<String> SignUp2(String email, String password) async {
+    // TODO: implement SigUp
+    try{
+      _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+     print('done');
+    }on FirebaseAuthException catch(err){
+      print(err.toString());
+    } catch (e) {
+      print(e.toString());
+    }
+    // throw UnimplementedError();
+  }
+}
